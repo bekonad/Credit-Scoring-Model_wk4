@@ -13,8 +13,6 @@ Project status:
 - Codebase to be added next
 ---
 
-## Credit Scoring Business Understanding
-
 Credit scoring is a critical process in financial services, used to quantify the likelihood that a borrower will default on a loan. In the context of Bati Bank’s partnership with an eCommerce platform, the goal is to evaluate customers for a buy-now-pay-later service using alternative transaction data.
 
 ### Basel II and Model Interpretability
@@ -42,15 +40,13 @@ There are trade-offs between simple, interpretable models and complex, high-perf
 In a regulated financial context, the choice of model balances interpretability, regulatory compliance, and predictive performance. Often, an ensemble approach or hybrid workflow is used to maintain both accuracy and explainability.
 
 ---
+# Feature Engineering (Task 3)
+We transformed raw transactional data into customer-level features using
+automated sklearn pipelines. Aggregate behavioral and time-based features
+were created to ensure reproducibility and model readiness.
 
+---
 ## Next Steps
-
-- **Task 2 - EDA:**  
-  Explore data, check distributions, correlations, missing values, and outliers.
-
-- **Task 3 - Feature Engineering:**  
-  Build aggregate, temporal, and encoded features; handle missing values; normalize/standardize; apply WoE/IV.
-
 - **Task 4 - Proxy Target:**  
   Define high-risk customers with RFM clustering; create `is_high_risk` target.
 
