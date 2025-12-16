@@ -5,10 +5,11 @@ os.environ["LOKY_MAX_CPU_COUNT"] = "4"
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
-from datetime import datetime
+from sklearn.cluster import KMeans
+
 # -----------------------------
 # Load Data
 # -----------------------------
@@ -18,103 +19,128 @@ def load_data(file_path='data/raw/data.csv'):
     return df
 
 # -----------------------------
-# Aggregate & Time-based Features
+# Feature Engineering
 # -----------------------------
-def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
-    # Aggregate features per customer
+def feature_engineering(df):
     agg_df = df.groupby('CustomerId').agg(
         total_amount=('Amount', 'sum'),
         avg_amount=('Amount', 'mean'),
         transaction_count=('TransactionId', 'count'),
-        std_amount=('Amount', 'std')
+        std_amount=('Amount', 'std'),
+        avg_hour=('TransactionStartTime', lambda x: x.dt.hour.mean()),
+        avg_day=('TransactionStartTime', lambda x: x.dt.day.mean())
     ).reset_index()
+
     agg_df['std_amount'] = agg_df['std_amount'].fillna(0)
-
-    # Extract time-based features
-    df['transaction_hour'] = df['TransactionStartTime'].dt.hour
-    df['transaction_day'] = df['TransactionStartTime'].dt.day
-    df['transaction_month'] = df['TransactionStartTime'].dt.month
-    df['transaction_year'] = df['TransactionStartTime'].dt.year
-
-    # Merge aggregates back
-    df = df.merge(agg_df, on='CustomerId', how='left')
-    return df
+    return agg_df
 
 # -----------------------------
-# Weight of Evidence (WoE) Transformation
+# RFM Metrics
 # -----------------------------
-def calculate_woe(df: pd.DataFrame, col: str, target: str):
-    eps = 0.0001
-    grouped = df.groupby(col)[target].agg(['sum','count'])
+def calculate_rfm(df):
+    snapshot_date = df['TransactionStartTime'].max() + pd.Timedelta(days=1)
+
+    rfm = df.groupby('CustomerId').agg(
+        Recency=('TransactionStartTime', lambda x: (snapshot_date - x.max()).days),
+        Frequency=('TransactionId', 'count'),
+        Monetary=('Amount', 'sum')
+    ).reset_index()
+
+    rfm['Monetary'] = rfm['Monetary'].abs()
+    return rfm
+
+# -----------------------------
+# Proxy Target Creation
+# -----------------------------
+def create_proxy_target(rfm):
+    scaler = StandardScaler()
+    rfm_scaled = scaler.fit_transform(rfm[['Recency', 'Frequency', 'Monetary']])
+
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    rfm['cluster'] = kmeans.fit_predict(rfm_scaled)
+
+    cluster_means = rfm.groupby('cluster')[['Recency', 'Frequency', 'Monetary']].mean()
+    high_risk_cluster = cluster_means['Recency'].idxmax()
+
+    rfm['is_high_risk'] = (rfm['cluster'] == high_risk_cluster).astype(int)
+    return rfm[['CustomerId', 'is_high_risk']]
+
+# -----------------------------
+# MANUAL WoE
+# -----------------------------
+def calculate_woe(df, feature, target):
+    eps = 1e-6
+    grouped = df.groupby(feature)[target].agg(['sum', 'count'])
     grouped['non_event'] = grouped['count'] - grouped['sum']
-    grouped['event_rate'] = (grouped['sum'] + eps) / (df[target].sum() + eps)
-    grouped['non_event_rate'] = (grouped['non_event'] + eps) / ((df[target] == 0).sum() + eps)
-    grouped['woe'] = np.log(grouped['event_rate'] / grouped['non_event_rate'])
-    return df[col].map(grouped['woe'])
 
-def apply_woe(df: pd.DataFrame, categorical_cols: list, target_col='is_high_risk'):
+    event_rate = (grouped['sum'] + eps) / (df[target].sum() + eps)
+    non_event_rate = (grouped['non_event'] + eps) / ((df[target] == 0).sum() + eps)
+
+    grouped['woe'] = np.log(event_rate / non_event_rate)
+    return df[feature].map(grouped['woe'])
+
+def apply_woe(df, categorical_cols, target):
     df_woe = df.copy()
     for col in categorical_cols:
-        if col in df_woe.columns:
-            df_woe[col] = calculate_woe(df_woe, col, target_col)
+        df_woe[col] = calculate_woe(df_woe, col, target)
     return df_woe
 
 # -----------------------------
 # Preprocessing Pipeline
 # -----------------------------
-def build_preprocessor(df: pd.DataFrame) -> ColumnTransformer:
-    numeric_features = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
-    numeric_features = [col for col in numeric_features if col not in ['CustomerId', 'TransactionId', 'BatchId', 'SubscriptionId']]
-
-    categorical_features = df.select_dtypes(include=['object']).columns.tolist()
-
-    numeric_transformer = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='median')),
-        ('scaler', StandardScaler())
-    ])
-
-    categorical_transformer = Pipeline(steps=[
-        ('imputer', SimpleImputer(strategy='most_frequent')),
-        ('onehot', OneHotEncoder(handle_unknown='ignore'))
-    ])
-
-    preprocessor = ColumnTransformer(
+def build_preprocessor(numeric_features):
+    return ColumnTransformer(
         transformers=[
-            ('num', numeric_transformer, numeric_features),
-            ('cat', categorical_transformer, categorical_features)
+            ('num',
+             Pipeline([
+                 ('imputer', SimpleImputer(strategy='median')),
+                 ('scaler', StandardScaler())
+             ]),
+             numeric_features)
         ]
     )
-    return preprocessor
 
 # -----------------------------
 # Full Processing Function
 # -----------------------------
-def process_data(input_path='data/raw/data.csv', output_path='data/processed/processed.csv', target_col=None):
-    df = load_data(input_path)
-    df = feature_engineering(df)
+def process_data(
+    input_path='data/raw/data.csv',
+    output_path='data/processed/processed.csv'
+):
+    raw_df = load_data(input_path)
 
-    # Apply WoE if target_col is provided
-    categorical_cols = ['CountryCode', 'CurrencyCode', 'ChannelId', 'ProductCategory', 'ProviderId', 'PricingStrategy']
-    categorical_cols = [col for col in categorical_cols if col in df.columns and target_col is not None]
-    if target_col and categorical_cols:
-        df = apply_woe(df, categorical_cols, target_col=target_col)
+    features = feature_engineering(raw_df)
+    rfm = calculate_rfm(raw_df)
+    target = create_proxy_target(rfm)
 
-    # Save processed dataset
+    df = features.merge(target, on='CustomerId')
+
+    categorical_cols = [
+        'CountryCode', 'CurrencyCode',
+        'ChannelId', 'ProductCategory',
+        'ProviderId', 'PricingStrategy'
+    ]
+    categorical_cols = [c for c in categorical_cols if c in df.columns]
+
+    if categorical_cols:
+        df = apply_woe(df, categorical_cols, 'is_high_risk')
+
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df.to_csv(output_path, index=False)
 
-    # Build preprocessing pipeline
-    preprocessor = build_preprocessor(df)
+    numeric_features = [
+        'total_amount', 'avg_amount',
+        'transaction_count', 'std_amount',
+        'avg_hour', 'avg_day'
+    ]
+
+    preprocessor = build_preprocessor(numeric_features)
     return df, preprocessor
 
 # -----------------------------
-# Script Entry Point
+# Entry Point
 # -----------------------------
 if __name__ == "__main__":
-    processed_df, pipeline = process_data(
-        input_path='data/raw/data.csv',
-        output_path='data/processed/processed.csv',
-        target_col=None  # Set 'is_high_risk' later in Task 4
-    )
-    print("Processed data saved at 'data/processed/processed.csv'. Shape:", processed_df.shape)
-    print(processed_df.head())
+    df, pipeline = process_data()
+    print("✅ Processed data saved:", df.shape)
+    print(df.head())
