@@ -1,0 +1,10 @@
+
+
+services:
+  credit-api:
+    build: .
+    container_name: credit-risk-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_URI=models:/CreditRisk_RandomForest/Production
