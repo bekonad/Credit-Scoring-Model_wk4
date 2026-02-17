@@ -11,3 +11,6 @@ mlflow
 pytest
 fastapi
 uvicorn
+fastapi
+uvicorn[standard]
+pydantic
