@@ -1,16 +1,20 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import pandas as pd
 import mlflow.sklearn
+import pandas as pd
 
-# Load champion model (Random Forest or XGBoost)
-MODEL_URI = "models:/CreditRisk_RandomForest/Production"  # or local path
-model = mlflow.sklearn.load_model(MODEL_URI)
+app = FastAPI(title="Bati Bank BNPL Credit Risk API – Week 12 Capstone")
 
-app = FastAPI(title="Bati Bank BNPL Credit Risk API")
+# Your re-logged Run ID
+MODEL_URI = "runs:/509e75e100aa43e99fafd4a978549b33/model"
 
-# Pydantic input model
-class CustomerInput(BaseModel):
+# Load model at startup
+try:
+    model = mlflow.sklearn.load_model(MODEL_URI)
+except Exception as e:
+    raise RuntimeError(f"Failed to load model: {e}")
+
+class CreditInput(BaseModel):
     total_amount: float
     avg_amount: float
     transaction_count: int
@@ -18,24 +22,25 @@ class CustomerInput(BaseModel):
     avg_hour: float
     avg_day: float
 
-# Pydantic output model
-class RiskOutput(BaseModel):
-    probability_of_default: float
-    credit_score: float
-    decision: str
+@app.post("/predict")
+def predict_credit_risk(data: CreditInput):
+    try:
+        input_df = pd.DataFrame([data.dict()])
+        # Align columns exactly as model expects
+        input_df = input_df[model.feature_names_in_]
+        prob = model.predict_proba(input_df)[0][1]
+        score = max(300, min(850, int(850 - prob * 550)))
+        decision = "Decline/Strict" if prob > 0.35 else "Approve"
 
-# Mapping PD → credit score
-def map_pd_to_score(pd: float) -> float:
-    return 300 + 550 * (1 - pd)
+        return {
+            "default_probability": round(float(prob), 4),
+            "credit_score": score,
+            "decision": decision,
+            "risk_level": "High" if prob > 0.35 else "Low-Moderate"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/predict", response_model=RiskOutput)
-def predict_risk(data: CustomerInput):
-    df = pd.DataFrame([data.dict()])
-    pd_prob = model.predict_proba(df)[:, 1][0]
-    score = map_pd_to_score(pd_prob)
-    decision = "APPROVE" if pd_prob < 0.5 else "REJECT"
-    return RiskOutput(
-        probability_of_default=pd_prob,
-        credit_score=score,
-        decision=decision
-    )
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "model_loaded": True}
