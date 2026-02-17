@@ -79,7 +79,34 @@ Week 12 solution balances both with Random Forest + SHAP.
 - SHAP (explainability)  
 - Pandas, Matplotlib, NumPy
 
-## Next Steps (if continuing)
+## Task 6 – API Deployment (FastAPI)
+
+**Branch**: task6-api-deployment-week12  
+**Endpoint**: `/predict` (POST)
+
+**Sample Request** (JSON body)
+
+```json
+{
+  "total_amount": 5000.0,
+  "avg_amount": 1000.0,
+  "transaction_count": 10,
+  "std_amount": 500.0,
+  "avg_hour": 12.0,
+  "avg_day": 15.0
+}
+
+{
+  "default_probability": 0.3842,
+  "credit_score": 638,
+  "decision": "Decline/Strict",
+  "risk_level": "High"
+}
+
+Run locally
+Bash uvicorn src.api.main:app --reload
+Docs: http://127.0.0.1:8000/docs
+Deployment ready: Dockerfile included – deploy to Render/Fly.io/Heroku/Docker Hub.
 
 - Deploy to production (e.g. Docker + FastAPI endpoint)
 - Add unit/integration tests
@@ -88,6 +115,6 @@ Week 12 solution balances both with Random Forest + SHAP.
 
 **Repository**: https://github.com/bekonad/Credit-Scoring-Model_wk4  
 **Live Dashboard**: [add URL after deploy]  
-**Author Contact**: [your email or LinkedIn]
+**Author Contact**: berekefeleke003@gmail.com 
 
 © 2026 Bereket Feleke – 10 Academy KAIM Week 12 Capstone
