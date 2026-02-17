@@ -1,61 +1,93 @@
-# Credit Risk Week 4 — Bati Bank BNPL Model
-Author: Bereket Feleke
+# Bati Bank BNPL Credit Risk Model – Week 12 Capstone
 
-This project implements:
-- Credit risk probability model using XGBoost
-- Loan amount & tenure prediction using LightGBM
-- Alternative-data-driven credit scoring
-- Full DVC + MLflow MLOps pipeline
+**Author**: Bereket Feleke  
+**Project**: Week 4 – Credit Risk Probability Model for Alternative Data (re-imagined as Week 12 capstone)  
+**Goal**: Transform the original Week 4 project into a production-grade, finance-focused portfolio piece demonstrating **reliability**, **transparency**, and **business impact**.
 
-Project status:
-- Repo initialized
-- Environment ready
-- Codebase to be added next
----
+Live Interactive Dashboard: [https://your-streamlit-app-url.streamlit.app](https://your-streamlit-app-url.streamlit.app)  
+*(Deployed via Streamlit Cloud – replace with your real URL after deploying)*
 
-## Credit Scoring Business Understanding
+## Business Problem
 
-Credit scoring is a critical process in financial services, used to quantify the likelihood that a borrower will default on a loan. In the context of Bati Bank’s partnership with an eCommerce platform, the goal is to evaluate customers for a buy-now-pay-later service using alternative transaction data.
+Bati Bank wants to offer buy-now-pay-later credit to e-commerce customers in emerging markets, but many applicants lack formal credit history, leading to high default rates and lost revenue. Traditional scoring misses behavioral signals from shopping patterns, causing either too many bad loans (financial loss) or overly strict approvals (missed opportunities).
 
-### Basel II and Model Interpretability
+**This solution** uses customer transaction data (Recency, Frequency, Monetary + time features) to predict default probability (`is_high_risk`) and recommend safe loan decisions.
 
-The Basel II Capital Accord emphasizes that banks must measure and manage credit risk in a consistent, well-documented manner. This regulatory framework drives the need for interpretable models because financial institutions must justify credit decisions to regulators. Transparent models, such as logistic regression with Weight of Evidence (WoE) encoding, allow clear insights into which features drive predictions and facilitate compliance with Basel II standards.
+## Key Improvements (Week 12 Capstone)
 
-### Proxy Variable Necessity
+- Interactive Streamlit dashboard for real-time risk scoring (usable by non-technical risk officers / product managers)
+- Real Random Forest predictions (re-logged model to fix MLflow artifact issues)
+- SHAP waterfall explainability – shows why the model predicted high/low risk for each customer
+- Business recommendation logic (Approve / Moderate / Decline/Strict)
+- Professional README with screenshots, metrics, and live demo link
 
-Our dataset lacks an explicit "default" label. To address this, we define a proxy variable that identifies high-risk customers based on behavioral patterns, such as Recency, Frequency, and Monetary (RFM) metrics. This proxy allows the model to predict potential defaults, but it introduces business risk: misclassification could lead to denying credit to creditworthy customers or extending credit to high-risk individuals. Hence, careful clustering and analysis are essential to minimize these risks.
+**Model Performance** (Random Forest)
 
-### Model Trade-offs
+| Metric      | Value   | Notes                              |
+|-------------|---------|------------------------------------|
+| ROC-AUC     | 0.8292  | Superior risk ranking              |
+| Accuracy    | 75.17%  | Overall correctness                |
+| Precision   | 69.57%  | Fewer false positives (bad loans)  |
+| Recall      | 61.75%  | Better default detection           |
+| F1-Score    | 65.43%  | Balanced precision/recall          |
 
-There are trade-offs between simple, interpretable models and complex, high-performance models:
+## Screenshots
 
-* **Simple models (e.g., Logistic Regression with WoE)**:
+![Dashboard Overview](plots/dashboard_overview.png)  
+*Interactive input sliders + real-time results*
 
-  * Pros: Highly interpretable, easier to document, regulatory-friendly.
-  * Cons: May have lower predictive performance for complex patterns in alternative data.
+![High-Risk Prediction + SHAP Waterfall](plots/shap_waterfall_high_risk.png)  
+*SHAP explains why model predicted 38.42% default risk – e.g. high volatility or low transaction count driving risk up*
 
-* **Complex models (e.g., Gradient Boosting, Random Forests)**:
+## How to Run Locally
 
-  * Pros: Can capture non-linear relationships and improve predictive accuracy.
-  * Cons: Less interpretable, harder to explain to regulators, potential overfitting if not carefully tuned.
+```bash
+git clone https://github.com/bekonad/Credit-Scoring-Model_wk4.git
+cd Credit-Scoring-Model_wk4
+# Activate virtual environment (if using venv)
+.\.venv\Scripts\Activate.ps1
+# Install dependencies
+pip install -r requirements.txt
+# Run dashboard
+streamlit run dashboard.py
+```
 
-In a regulated financial context, the choice of model balances interpretability, regulatory compliance, and predictive performance. Often, an ensemble approach or hybrid workflow is used to maintain both accuracy and explainability.
+Open http://localhost:8501 in your browser.
 
----
+## Original Project Context (Week 4)
 
-## Next Steps
+### Business Understanding
 
-- **Task 2 - EDA:**  
-  Explore data, check distributions, correlations, missing values, and outliers.
+Credit scoring quantifies default likelihood. In Bati Bank's BNPL partnership, alternative transaction data is used when traditional credit history is unavailable.
 
-- **Task 3 - Feature Engineering:**  
-  Build aggregate, temporal, and encoded features; handle missing values; normalize/standardize; apply WoE/IV.
+**Basel II & Interpretability**  
+Banks must justify decisions to regulators. Transparent models (e.g., logistic with WoE) aid compliance, while complex models (e.g., gradient boosting) improve performance but require explainability tools like SHAP.
 
-- **Task 4 - Proxy Target:**  
-  Define high-risk customers with RFM clustering; create `is_high_risk` target.
+**Proxy Variable**  
+No explicit default label → used RFM clustering to create `is_high_risk` proxy. Misclassification risk exists; careful validation minimizes it.
 
-- **Task 5 - Model Training:**  
-  Train and tune multiple models, track experiments with MLflow, evaluate metrics, write unit tests.
+**Model Trade-offs**  
+Simple models → interpretable, regulatory-friendly  
+Complex models → higher accuracy, non-linear patterns  
+Week 12 solution balances both with Random Forest + SHAP.
 
-- **Task 6 - Deployment & CI/CD:**  
-  Build FastAPI service, containerize with Docker, configure automated testing and CI/CD.
+## Tech Stack
+
+- Streamlit (interactive UI)  
+- MLflow (model tracking & loading)  
+- scikit-learn Random Forest  
+- SHAP (explainability)  
+- Pandas, Matplotlib, NumPy
+
+## Next Steps (if continuing)
+
+- Deploy to production (e.g. Docker + FastAPI endpoint)
+- Add unit/integration tests
+- CI/CD pipeline (GitHub Actions)
+- A/B testing of model versions
+
+**Repository**: https://github.com/bekonad/Credit-Scoring-Model_wk4  
+**Live Dashboard**: [add URL after deploy]  
+**Author Contact**: [your email or LinkedIn]
+
+© 2026 Bereket Feleke – 10 Academy KAIM Week 12 Capstone
