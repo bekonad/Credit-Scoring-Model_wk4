@@ -4,12 +4,13 @@ from typing import Dict
 
 app = FastAPI(
     title="Bati Bank BNPL Credit Risk API – Week 12 Task 6",
-    description="Minimal API for credit risk prediction (demo mode)",
+    description="Minimal API for credit risk prediction (demo/fallback mode)",
     version="1.0.0"
 )
 
 @app.get("/health")
 def health_check():
+    """Health check endpoint – required for Render deployment"""
     return {"status": "healthy", "mode": "demo"}
 
 class CreditRequest(BaseModel):
@@ -22,8 +23,9 @@ class CreditRequest(BaseModel):
 
 @app.post("/predict", response_model=Dict)
 def predict_credit_risk(data: CreditRequest):
+    """Predict default probability and recommendation (demo mode)"""
     try:
-        # Same fallback as dashboard demo mode
+        # Same fallback logic as your working dashboard demo mode
         rfm_score = (data.transaction_count / 50.0) + (data.total_amount / 20000.0)
         volatility_penalty = data.std_amount / max(abs(data.total_amount), 1)
         time_score = (data.avg_hour / 24.0) + (data.avg_day / 31.0)
