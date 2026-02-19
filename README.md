@@ -114,7 +114,7 @@ Deployment ready: Dockerfile included – deploy to Render/Fly.io/Heroku/Docker 
 - A/B testing of model versions
 
 **Repository**: https://github.com/bekonad/Credit-Scoring-Model_wk4  
-**Live Dashboard**: [add URL after deploy]  
+**Live Dashboard**: []  
 **Author Contact**: berekefeleke003@gmail.com 
 
 © 2026 Bereket Feleke – 10 Academy KAIM Week 12 Capstone
