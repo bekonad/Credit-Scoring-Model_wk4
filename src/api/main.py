@@ -10,7 +10,6 @@ app = FastAPI(
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint – required for deployment"""
     return {"status": "healthy", "mode": "demo"}
 
 class CreditRequest(BaseModel):
@@ -23,9 +22,8 @@ class CreditRequest(BaseModel):
 
 @app.post("/predict", response_model=Dict)
 def predict_credit_risk(data: CreditRequest):
-    """Predict default probability and recommendation (demo mode)"""
     try:
-        # Same fallback as dashboard when model load fails
+        # Same fallback as dashboard demo mode
         rfm_score = (data.transaction_count / 50.0) + (data.total_amount / 20000.0)
         volatility_penalty = data.std_amount / max(abs(data.total_amount), 1)
         time_score = (data.avg_hour / 24.0) + (data.avg_day / 31.0)
