@@ -24,3 +24,9 @@ def test_predict_endpoint():
     assert "default_probability" in data
     assert "credit_score" in data
     assert "decision" in data
+    assert "mode" in data
+
+def test_root_endpoint():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "mode" in response.json()
