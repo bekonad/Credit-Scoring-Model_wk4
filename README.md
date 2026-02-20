@@ -1,93 +1,104 @@
 # Bati Bank BNPL Credit Risk Model – Week 12 Capstone
 
 **Author**: Bereket Feleke  
+**Email**: bereketfeleke003@gmail.com  
 **Project**: Week 4 – Credit Risk Probability Model for Alternative Data (re-imagined as Week 12 capstone)  
-**Goal**: Transform the original Week 4 project into a production-grade, finance-focused portfolio piece demonstrating **reliability**, **transparency**, and **business impact**.
+**Goal**: Transform the Week 4 credit risk project into a production-grade portfolio piece demonstrating **reliability**, **transparency**, and **business impact** for finance recruiters.
 
-Live Interactive Dashboard: [https://your-streamlit-app-url.streamlit.app](https://your-streamlit-app-url.streamlit.app)  
-*(Deployed via Streamlit Cloud – replace with your real URL after deploying)*
+**Live Dashboard** (real predictions + SHAP explainability):  
+https://bekonad-credit-scoring-model-wk4.streamlit.app  
+
+**Live API** (Task 6 – demo fallback mode):  
+https://credit-scoring-model-wk4.onrender.com/docs
+
+**Repository**: https://github.com/bekonad/Credit-Scoring-Model_wk4
 
 ## Business Problem
 
-Bati Bank wants to offer buy-now-pay-later credit to e-commerce customers in emerging markets, but many applicants lack formal credit history, leading to high default rates and lost revenue. Traditional scoring misses behavioral signals from shopping patterns, causing either too many bad loans (financial loss) or overly strict approvals (missed opportunities).
+Bati Bank wants to offer buy-now-pay-later credit to e-commerce customers in emerging markets like Ethiopia. Many applicants lack formal credit history, leading to high default rates (revenue loss) or overly strict approvals (missed opportunities). Traditional scoring ignores behavioral signals from transaction data (Recency, Frequency, Monetary + time patterns).
 
-**This solution** uses customer transaction data (Recency, Frequency, Monetary + time features) to predict default probability (`is_high_risk`) and recommend safe loan decisions.
+**This solution** uses alternative data to predict default probability (`is_high_risk`) and recommend safe loan decisions.
+
+**Why it matters**  
+- Reduces defaults while approving more low-risk customers  
+- Transparent predictions build trust with regulators and risk teams  
+- Fast, interactive tool enables better decision-making
 
 ## Key Improvements (Week 12 Capstone)
 
-- Interactive Streamlit dashboard for real-time risk scoring (usable by non-technical risk officers / product managers)
-- Real Random Forest predictions (re-logged model to fix MLflow artifact issues)
-- SHAP waterfall explainability – shows why the model predicted high/low risk for each customer
-- Business recommendation logic (Approve / Moderate / Decline/Strict)
-- Professional README with screenshots, metrics, and live demo link
+- Interactive Streamlit dashboard for real-time risk scoring  
+- Real Random Forest predictions (re-logged model to fix MLflow issues)  
+- SHAP waterfall explainability – shows feature contributions to risk  
+- Business recommendation logic (Approve / Moderate / Decline/Strict)  
+- Task 6: FastAPI `/predict` endpoint + Dockerfile (deployed on Render)  
+- Professional README with screenshots, metrics, live links
 
-**Model Performance** (Random Forest)
+**Model Performance** (Random Forest – re-logged)
 
-| Metric      | Value   | Notes                              |
-|-------------|---------|------------------------------------|
-| ROC-AUC     | 0.8292  | Superior risk ranking              |
-| Accuracy    | 75.17%  | Overall correctness                |
-| Precision   | 69.57%  | Fewer false positives (bad loans)  |
-| Recall      | 61.75%  | Better default detection           |
-| F1-Score    | 65.43%  | Balanced precision/recall          |
+| Metric      | Value   | Interpretation                              |
+|-------------|---------|---------------------------------------------|
+| ROC-AUC     | 0.8292  | Excellent risk separation                   |
+| Accuracy    | 75.17%  | Strong overall correctness                  |
+| Precision   | 69.57%  | Low false positives                         |
+| Recall      | 61.75%  | Good default detection                      |
+| F1-Score    | 65.43%  | Balanced precision/recall                   |
+
+**Example Dashboard Output**  
+Default Probability: 38.42% → Credit Score: 638 → **High Risk – Decline/Strict**
 
 ## Screenshots
 
 ![Dashboard Overview](plots/dashboard_overview.png)  
-*Interactive input sliders + real-time results*
+*Interactive sliders + real-time results*
 
 ![High-Risk Prediction + SHAP Waterfall](plots/shap_waterfall_high_risk.png)  
-*SHAP explains why model predicted 38.42% default risk – e.g. high volatility or low transaction count driving risk up*
+*SHAP explains why model predicted 38.42% default risk*
+
+![API Swagger UI](plots/api_docs.png)  
+*Interactive API docs (/docs)*
+
+![API /predict Response](plots/api_predict_response.png)  
+*Live prediction response*
 
 ## How to Run Locally
 
 ```bash
 git clone https://github.com/bekonad/Credit-Scoring-Model_wk4.git
 cd Credit-Scoring-Model_wk4
-# Activate virtual environment (if using venv)
+
+# Activate virtual environment
 .\.venv\Scripts\Activate.ps1
+
 # Install dependencies
 pip install -r requirements.txt
+
 # Run dashboard
 streamlit run dashboard.py
-```
 
-Open http://localhost:8501 in your browser.
+# Run API (optional)
+uvicorn src.api.main:app --reload
 
-## Original Project Context (Week 4)
+Open:
 
-### Business Understanding
+Dashboard: http://localhost:8501
+API Docs: http://127.0.0.1:8000/docs
 
-Credit scoring quantifies default likelihood. In Bati Bank's BNPL partnership, alternative transaction data is used when traditional credit history is unavailable.
+Tech Stack
 
-**Basel II & Interpretability**  
-Banks must justify decisions to regulators. Transparent models (e.g., logistic with WoE) aid compliance, while complex models (e.g., gradient boosting) improve performance but require explainability tools like SHAP.
+Streamlit (dashboard)
+MLflow (model tracking & loading)
+scikit-learn Random Forest
+SHAP (explainability)
+FastAPI (API)
+Docker (containerization)
+Pandas, Matplotlib, NumPy
 
-**Proxy Variable**  
-No explicit default label → used RFM clustering to create `is_high_risk` proxy. Misclassification risk exists; careful validation minimizes it.
-
-**Model Trade-offs**  
-Simple models → interpretable, regulatory-friendly  
-Complex models → higher accuracy, non-linear patterns  
-Week 12 solution balances both with Random Forest + SHAP.
-
-## Tech Stack
-
-- Streamlit (interactive UI)  
-- MLflow (model tracking & loading)  
-- scikit-learn Random Forest  
-- SHAP (explainability)  
-- Pandas, Matplotlib, NumPy
-
-## Task 6 – API Deployment (FastAPI)
-
-**Branch**: task6-api-deployment-week12  
-**Endpoint**: `/predict` (POST)
-
-**Sample Request** (JSON body)
-
-```json
-{
+Task 6 – API Deployment (FastAPI)
+Branch: task6-api-deployment-week12 (merged into main)
+Endpoint: POST /predict
+Mode: Demo (fallback heuristic – real model loading requires remote MLflow server)
+Sample Request
+JSON{
   "total_amount": 5000.0,
   "avg_amount": 1000.0,
   "transaction_count": 10,
@@ -95,26 +106,35 @@ Week 12 solution balances both with Random Forest + SHAP.
   "avg_hour": 12.0,
   "avg_day": 15.0
 }
-
-{
-  "default_probability": 0.3842,
-  "credit_score": 638,
-  "decision": "Decline/Strict",
-  "risk_level": "High"
+Sample Response (live)
+JSON{
+  "default_probability": 0.3069,
+  "credit_score": 681,
+  "decision": "Approve",
+  "risk_level": "Low-Moderate",
+  "message": "High risk detected - strict terms or decline recommended (demo mode)"
 }
+Deployed on: Render.com (free tier, Docker-based)
+Challenge Alignment (Week 12)
+This project transforms Week 4 credit risk model into a finance-ready portfolio piece:
 
-Run locally
-Bash uvicorn src.api.main:app --reload
-Docs: http://127.0.0.1:8000/docs
-Deployment ready: Dockerfile included – deploy to Render/Fly.io/Heroku/Docker Hub.
+Reliability: Re-logged model + fallback heuristic
+Transparency: SHAP waterfall explainability
+Business impact: Risk-based decisions using alternative data
+Advanced skills: Interactive dashboard + deployed API + Docker
 
-- Deploy to production (e.g. Docker + FastAPI endpoint)
-- Add unit/integration tests
-- CI/CD pipeline (GitHub Actions)
-- A/B testing of model versions
+Limitations
 
-**Repository**: https://github.com/bekonad/Credit-Scoring-Model_wk4  
-**Live Dashboard**: []  
-**Author Contact**: berekefeleke003@gmail.com 
+API uses demo fallback (real model loading requires remote MLflow server)
+Model uses proxy target (is_high_risk) – real default labels would improve accuracy
 
+Lessons Learned
+
+Local MLflow runs do not work remotely → fallback ensures robustness
+SHAP v0.20+ requires explicit class selection → fixed with [:, :, 1]
+Demo mode allows deployment while real model shines in local dashboard
+
+Repository: https://github.com/bekonad/Credit-Scoring-Model_wk4
+Live Dashboard: https://bekonad-credit-scoring-model-wk4.streamlit.app
+Live API: https://credit-scoring-model-wk4.onrender.com/docs
 © 2026 Bereket Feleke – 10 Academy KAIM Week 12 Capstone
